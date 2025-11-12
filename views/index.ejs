@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title><%= title %></title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <header>
+    <h1>Discussion Categories 🗂️</h1>
+  
+    <% if (currentUser) { %>
+     <p>👋 Welcome, <strong><%= currentUser.username %></strong> 
+      (<%= currentUser.role %>) 
+      | <a href="/logout">Logout</a>
+     </p>
+    <% } else { %>
+     <p><a href="/login">Login</a> | <a href="/register">Register</a></p>
+    <% } %>
+  </header>
+
+  <main>
+    <p>Welcome to your new discussion forum!</p>
+    <p>Server and MongoDB connected successfully 🚀</p>
+  </main>
+</body>
+</html>

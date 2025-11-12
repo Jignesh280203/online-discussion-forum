@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title><%= thread.title %></title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <header>
+    <h1>Discussion Categories 🗂️</h1>
+  
+    <% if (currentUser) { %>
+     <p>👋 Welcome, <strong><%= currentUser.username %></strong> 
+      (<%= currentUser.role %>) 
+      | <a href="/logout">Logout</a>
+     </p>
+    <% } else { %>
+     <p><a href="/login">Login</a> | <a href="/register">Register</a></p>
+    <% } %>
+  </header>
+
+  <hr>
+
+  <section>
+    <h3>💬 Comments</h3>
+    <form action="/threads/<%= thread._id %>/comments" method="POST">
+      <textarea name="content" placeholder="Write a comment..." required></textarea><br>
+      <button type="submit">Post Comment</button>
+    </form>
+
+    <ul>
+      <% if (comments.length === 0) { %>
+        <p>No comments yet. Be the first to reply!</p>
+      <% } else { %>
+        <% comments.forEach(c => { %>
+          <li>
+            <p><%= c.content %></p>
+            <small><i>by <%= c.author ? c.author.username : 'Anonymous' %></i></small>
+          </li>
+        <% }) %>
+      <% } %>
+    </ul>
+  </section>
+</body>
+</html>

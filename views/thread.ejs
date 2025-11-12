@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title><%= category.name %> Threads</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <header>
+    <h1>Discussion Categories 🗂️</h1>
+  
+    <% if (currentUser) { %>
+     <p>👋 Welcome, <strong><%= currentUser.username %></strong> 
+      (<%= currentUser.role %>) 
+      | <a href="/logout">Logout</a>
+     </p>
+    <% } else { %>
+     <p><a href="/login">Login</a> | <a href="/register">Register</a></p>
+    <% } %>
+  </header>
+
+  <main>
+    <section>
+      <h3>Create a New Thread 🧵</h3>
+      <form action="/categories/<%= category._id %>/threads" method="POST">
+        <input 
+          type="text" 
+          name="title" 
+          placeholder="Enter Thread Title" 
+          required 
+          style="width: 80%; padding: 6px; margin-bottom: 10px;"
+        ><br>
+        <textarea 
+          name="content" 
+          placeholder="Write your content..." 
+          required 
+          style="width: 80%; height: 100px; padding: 6px;"
+        ></textarea><br>
+        <button type="submit">➕ Create Thread</button>
+      </form>
+    </section>
+
+    <hr>
+
+    <section>
+      <h3>Existing Threads 🗂️</h3>
+      <% if (threads.length === 0) { %>
+        <p>No threads in this category yet. Be the first to post!</p>
+      <% } else { %>
+        <ul style="list-style: none; padding: 0;">
+          <% threads.forEach(t => { %>
+            <li style="margin-bottom: 15px; border-bottom: 1px solid #ccc; padding-bottom: 10px;">
+              <a href="/threads/<%= t._id %>" style="text-decoration: none; color: #007bff; font-size: 18px;">
+                <strong><%= t.title %></strong>
+              </a>
+              <p style="margin: 6px 0;"><%= t.content %></p>
+
+              <div style="font-size: 14px; color: #555;">
+                <i>by <%= t.author ? t.author.username : "Anonymous" %></i> • 
+                Votes: <%= t.votes || 0 %>  
+                <a href="/threads/<%= t._id %>/vote/up" style="margin-left: 10px;">⬆️</a>  
+                <a href="/threads/<%= t._id %>/vote/down">⬇️</a>
+                <% if (currentUser && (currentUser.role === "moderator" || currentUser.role === "admin")) { %>
+                 <a href="/threads/<%= t._id %>/delete" style="margin-left: 10px; color: red;"
+                    onclick="return confirm('Are you sure you want to delete this thread?')">🗑️ Delete</a>
+                <% } %>
+              </div>
+            </li>
+          <% }) %>
+        </ul>
+      <% } %>
+    </section>
+  </main>
+</body>
+</html>
