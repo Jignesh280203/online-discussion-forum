@@ -90,7 +90,7 @@ app.use("/threads", threadRoutes);
 app.use("/", authRoutes);
 app.use("/categories", categoryRoutes);
 
-// Home route (kept after authRoutes so auth endpoints work)
+// Home route
 app.get("/", (req, res) => {
   res.render("index", { title: "Home" });
 });
@@ -98,15 +98,12 @@ app.get("/", (req, res) => {
 // 404 handler
 app.use((req, res, next) => {
   res.status(404);
-  // respond with html page
   if (req.accepts("html")) {
     return res.render("404", { url: req.originalUrl });
   }
-  // respond with json
   if (req.accepts("json")) {
     return res.json({ error: "Not found" });
   }
-  // default plain-text
   res.type("txt").send("Not found");
 });
 
@@ -115,26 +112,33 @@ app.use((err, req, res, next) => {
   console.error("Unhandled error:", err.stack || err);
   const status = err.status || 500;
   res.status(status);
-  // return JSON for API endpoints
   if (req.accepts("json") && !req.accepts("html")) {
     return res.json({ error: err.message || "Server error" });
   }
-  // else render an error page (create views/error.ejs if you like)
   return res.render("error", { error: err, status });
 });
 
-// Start server
+// ✅ Improved Start Server Section
 const PORT = process.env.PORT || 3000;
+
 const server = app.listen(PORT, () => {
   console.log(`🚀 Server running on http://localhost:${PORT} (env=${process.env.NODE_ENV || "dev"})`);
 });
 
-// Graceful shutdown
+// ✅ Handle Port Already In Use Error
+server.on("error", (err) => {
+  if (err.code === "EADDRINUSE") {
+    console.error(`❌ Port ${PORT} is busy. Try another port!`);
+  } else {
+    console.error("Server Error:", err);
+  }
+});
+
+// ✅ Graceful Shutdown (Safe Exit)
 const shutdown = (signal) => {
   console.log(`\nReceived ${signal}, closing server...`);
   server.close(() => {
     console.log("Server closed.");
-    // close DB connection if needed
     process.exit(0);
   });
 };
