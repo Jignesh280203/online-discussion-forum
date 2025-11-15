@@ -1,45 +1,130 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title><%= thread.title %></title>
-  <link rel="stylesheet" href="/css/style.css">
-</head>
-<body>
-  <header>
-    <h1>Discussion Categories 🗂️</h1>
-  
-    <% if (currentUser) { %>
-     <p>👋 Welcome, <strong><%= currentUser.username %></strong> 
-      (<%= currentUser.role %>) 
-      | <a href="/logout">Logout</a>
-     </p>
-    <% } else { %>
-     <p><a href="/login">Login</a> | <a href="/register">Register</a></p>
+<%- include('layout', { body: `
+<div class="max-w-3xl mx-auto">
+
+  <!-- Thread Card -->
+  <div class="bg-white rounded-xl shadow p-6 mb-6" data-aos="fade-up">
+    <div class="flex justify-between items-start">
+      <div>
+        <h1 class="text-2xl font-bold text-slate-900"><%= thread.title %></h1>
+        <p class="text-sm text-slate-500 mt-1">by <strong><%= thread.author?.username || 'Anonymous' %></strong> • <%= new Date(thread.createdAt).toLocaleString() %></p>
+      </div>
+
+      <div class="text-center">
+        <form action="/threads/<%= thread._id %>/vote" method="POST">
+          <input type="hidden" name="type" value="up">
+          <button class="mb-1"><i data-feather="arrow-up-circle"></i></button>
+        </form>
+        <div class="font-bold text-lg"><%= thread.votes || 0 %></div>
+        <form action="/threads/<%= thread._id %>/vote" method="POST">
+          <input type="hidden" name="type" value="down">
+          <button class="mt-1"><i data-feather="arrow-down-circle"></i></button>
+        </form>
+      </div>
+    </div>
+
+    <div class="mt-4 text-slate-700">
+      <p><%= thread.content %></p>
+    </div>
+
+    <% if (currentUser && (currentUser.role === 'moderator' || currentUser.role === 'admin' || thread.author && thread.author._id && thread.author._id.toString() === currentUser._id.toString())) { %>
+      <form action="/threads/<%= thread._id %>/delete" method="POST" class="mt-4">
+        <button onclick="return confirm('Delete this thread?')" class="px-3 py-1 bg-red-500 text-white rounded">Delete Thread</button>
+      </form>
     <% } %>
-  </header>
+  </div>
 
-  <hr>
+  <!-- Comments Section -->
+  <div class="bg-white rounded-xl shadow p-6" data-aos="fade-up">
+    <h2 class="text-xl font-semibold mb-4">Comments</h2>
 
-  <section>
-    <h3>💬 Comments</h3>
-    <form action="/threads/<%= thread._id %>/comments" method="POST">
-      <textarea name="content" placeholder="Write a comment..." required></textarea><br>
-      <button type="submit">Post Comment</button>
-    </form>
+    <% if (currentUser) { %>
+      <form action="/comments/<%= thread._id %>" method="POST" class="mb-6">
+        <textarea name="content" required class="w-full p-3 border rounded" placeholder="Write a comment..."></textarea>
+        <div class="mt-2 flex gap-2">
+          <button class="px-3 py-2 bg-accent-1 text-white rounded">Post Comment</button>
+        </div>
+      </form>
+    <% } else { %>
+      <p class="text-slate-500">Please <a href="/login" class="text-accent-3">login</a> to comment.</p>
+    <% } %>
 
-    <ul>
-      <% if (comments.length === 0) { %>
-        <p>No comments yet. Be the first to reply!</p>
-      <% } else { %>
-        <% comments.forEach(c => { %>
-          <li>
-            <p><%= c.content %></p>
-            <small><i>by <%= c.author ? c.author.username : 'Anonymous' %></i></small>
-          </li>
-        <% }) %>
-      <% } %>
+    <% if (comments && comments.length === 0) { %>
+      <p class="text-slate-500">No comments yet. Be the first to comment!</p>
+    <% } %>
+
+    <ul class="space-y-4">
+      <% comments.forEach(c => { %>
+        <li id="comment-<%= c._id %>" class="border p-4 rounded">
+          <div class="flex justify-between items-start">
+            <div>
+              <p class="font-semibold"><%= c.author?.username || 'Anonymous' %></p>
+              <p class="text-xs text-slate-500"><%= new Date(c.createdAt).toLocaleString() %></p>
+            </div>
+
+            <div class="flex items-center gap-2">
+              <form action="/comments/vote/<%= c._id %>" method="POST" class="inline">
+                <input type="hidden" name="type" value="up">
+                <button title="Upvote" class="text-slate-500"><i data-feather="arrow-up"></i></button>
+              </form>
+              <span class="font-bold"><%= c.votes || 0 %></span>
+              <form action="/comments/vote/<%= c._id %>" method="POST" class="inline">
+                <input type="hidden" name="type" value="down">
+                <button title="Downvote" class="text-slate-500"><i data-feather="arrow-down"></i></button>
+              </form>
+
+              <% if (currentUser && (currentUser.role === 'admin' || currentUser.role === 'moderator' || (c.author && c.author._id && c.author._id.toString() === currentUser._id.toString()))) { %>
+                <form action="/comments/delete/<%= c._id %>" method="POST" onsubmit="return confirm('Delete this comment?');">
+                  <button class="ml-2 text-red-500"><i data-feather="trash-2"></i></button>
+                </form>
+              <% } %>
+            </div>
+          </div>
+
+          <p class="mt-3 text-slate-700"><%= c.content %></p>
+
+          <!-- Replies (Twitter-style) -->
+          <% const replies = repliesMap[c._id] || []; %>
+          <% if (replies.length > 0) { %>
+            <div class="mt-3 space-y-2 pl-4 border-l">
+              <% replies.forEach(r => { %>
+                <div class="bg-slate-50 p-3 rounded">
+                  <div class="flex justify-between items-start">
+                    <div>
+                      <p class="text-sm font-semibold"><%= r.author?.username || 'Anonymous' %></p>
+                      <p class="text-xs text-slate-400"><%= new Date(r.createdAt).toLocaleString() %></p>
+                    </div>
+                    <div class="flex items-center gap-2">
+                      <form action="/comments/vote/<%= r._id %>" method="POST">
+                        <input type="hidden" name="type" value="up">
+                        <button title="Upvote" class="text-slate-500"><i data-feather="arrow-up"></i></button>
+                      </form>
+                      <span class="font-bold"><%= r.votes || 0 %></span>
+                      <form action="/comments/vote/<%= r._1 %>" method="POST">
+                        <!-- placeholder to avoid malformed template if needed -->
+                      </form>
+                    </div>
+                  </div>
+
+                  <p class="mt-2 text-sm"><%= r.content %></p>
+                </div>
+              <% }) %>
+            </div>
+          <% } %>
+
+          <!-- Reply form (twitter-style) -->
+          <% if (currentUser) { %>
+            <form action="/comments/reply/<%= c._id %>" method="POST" class="mt-3">
+              <textarea name="content" rows="2" class="w-full p-2 border rounded" placeholder="Reply to this comment..."></textarea>
+              <div class="mt-2">
+                <button class="px-3 py-1 bg-accent-3 text-white rounded">Reply</button>
+              </div>
+            </form>
+          <% } %>
+        </li>
+      <% }) %>
     </ul>
-  </section>
-</body>
-</html>
+
+  </div>
+
+</div>
+` }) %>

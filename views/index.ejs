@@ -1,85 +1,91 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>Dashboard</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://unpkg.com/aos@next/dist/aos.js"></script>
-  <link rel="stylesheet" href="/css/style.css">
-</head>
+<%- include('layout', { body: `
+<div class="max-w-6xl mx-auto">
 
-<body class="bg-gray-100">
+  <!-- Welcome Section -->
+  <div class="mb-8" data-aos="fade-up">
+    <h1 class="text-4xl font-bold text-slate-900">
+      Hey <%= currentUser ? currentUser.username : "Guest" %> 👋
+    </h1>
+    <p class="text-slate-600 mt-1">
+      Welcome to ColorForum — your place to discuss, learn, and explore ideas!
+    </p>
+  </div>
 
-  <!-- Header -->
-  <header class="bg-blue-600 text-white p-6 shadow-md">
-    <h1 class="text-4xl font-bold text-center">Discussion Forum 💬</h1>
+  <!-- Quick Stats -->
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
 
-    <% if (currentUser) { %>
-      <p class="text-center mt-2 text-lg">
-        👋 Welcome, <strong><%= currentUser.username %></strong> 
-        (<%= currentUser.role %>) |
-        <a href="/logout" class="underline">Logout</a>
-      </p>
-    <% } %>
-  </header>
-
-  <main class="max-w-5xl mx-auto p-8">
-
-    <!-- Dashboard Cards -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-
-      <!-- Categories -->
-      <a href="/categories" data-aos="fade-up"
-        class="bg-white p-6 rounded-xl shadow hover:shadow-xl transition">
-        <h2 class="text-2xl font-semibold mb-2">📂 Categories</h2>
-        <p class="text-gray-600">Browse all discussion categories.</p>
-      </a>
-
-      <!-- Threads -->
-      <a href="/threads" data-aos="fade-up"
-        class="bg-white p-6 rounded-xl shadow hover:shadow-xl transition">
-        <h2 class="text-2xl font-semibold mb-2">📝 Threads</h2>
-        <p class="text-gray-600">View all discussion threads.</p>
-      </a>
-
-      <!-- Create Category -->
-      <% if (currentUser?.role === "moderator" || currentUser?.role === "admin") { %>
-      <a href="/categories" data-aos="fade-up"
-        class="bg-white p-6 rounded-xl shadow hover:shadow-xl transition">
-        <h2 class="text-2xl font-semibold mb-2">➕ Create Category</h2>
-        <p class="text-gray-600">Moderators/Admins can add new categories.</p>
-      </a>
-      <% } %>
-
-      <!-- Notifications -->
-      <a href="/notifications" data-aos="fade-up"
-        class="bg-white p-6 rounded-xl shadow hover:shadow-xl transition">
-        <h2 class="text-2xl font-semibold mb-2">🔔 Notifications</h2>
-        <p class="text-gray-600">See replies & updates.</p>
-      </a>
-
-      <!-- Profile -->
-      <a href="/profile" data-aos="fade-up"
-        class="bg-white p-6 rounded-xl shadow hover:shadow-xl transition">
-        <h2 class="text-2xl font-semibold mb-2">👤 Profile</h2>
-        <p class="text-gray-600">View your profile & activity.</p>
-      </a>
-
-      <!-- Admin Panel -->
-      <% if (currentUser?.role === "admin") { %>
-      <a href="/admin" data-aos="fade-up"
-        class="bg-white p-6 rounded-xl shadow hover:shadow-xl transition">
-        <h2 class="text-2xl font-semibold mb-2">🛠 Admin Panel</h2>
-        <p class="text-gray-600">Manage users & website settings.</p>
-      </a>
-      <% } %>
-
+    <div class="bg-white p-6 rounded-xl shadow hover:shadow-lg transition" data-aos="fade-up">
+      <h3 class="text-sm text-slate-500">Total Categories</h3>
+      <p class="text-4xl font-extrabold text-accent-1 mt-2"><%= stats?.categories || 0 %></p>
+      <a href="/categories" class="text-sm text-accent-3 mt-2 inline-block">View Categories →</a>
     </div>
 
-  </main>
+    <div class="bg-white p-6 rounded-xl shadow hover:shadow-lg transition" data-aos="fade-up" data-aos-delay="100">
+      <h3 class="text-sm text-slate-500">Total Threads</h3>
+      <p class="text-4xl font-extrabold text-accent-1 mt-2"><%= stats?.threads || 0 %></p>
+      <a href="/threads" class="text-sm text-accent-3 mt-2 inline-block">View Threads →</a>
+    </div>
 
-  <script>
-    AOS.init();
-  </script>
-</body>
-</html>
+    <div class="bg-white p-6 rounded-xl shadow hover:shadow-lg transition" data-aos="fade-up" data-aos-delay="200">
+      <h3 class="text-sm text-slate-500">Your Activity</h3>
+      <p class="text-2xl font-bold text-accent-3 mt-2"><%= stats?.yourThreads || 0 %> threads</p>
+      <p class="text-slate-500 text-sm"><%= stats?.yourComments || 0 %> comments</p>
+      <a href="/profile" class="text-sm text-accent-1 mt-2 inline-block">View Profile →</a>
+    </div>
+
+  </div>
+
+  <!-- Trending + Recent -->
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+    <!-- Trending Threads -->
+    <section class="bg-white p-6 rounded-xl shadow" data-aos="fade-up">
+      <h2 class="text-xl font-semibold mb-3">🔥 Trending Threads</h2>
+
+      <% if (trending && trending.length > 0) { %>
+        <ul class="space-y-3">
+          <% trending.forEach(t => { %>
+            <li class="p-3 border rounded shadow-sm hover:shadow transition">
+              <a href="/threads/<%= t._id %>" class="text-lg font-semibold text-accent-1 hover:underline">
+                <%= t.title %>
+              </a>
+              <div class="text-xs text-slate-500 mt-1">
+                ⭐ Votes: <%= t.votes || 0 %> • 
+                <%= new Date(t.createdAt).toLocaleString() %>
+              </div>
+            </li>
+          <% }) %>
+        </ul>
+      <% } else { %>
+        <p class="text-slate-500">No trending threads yet.</p>
+      <% } %>
+    </section>
+
+    <!-- Recent Threads -->
+    <section class="bg-white p-6 rounded-xl shadow" data-aos="fade-up">
+      <h2 class="text-xl font-semibold mb-3">🆕 Recent Threads</h2>
+
+      <% if (recent && recent.length > 0) { %>
+        <ul class="space-y-3">
+          <% recent.forEach(t => { %>
+            <li class="p-3 border rounded shadow-sm hover:shadow transition">
+              <a href="/threads/<%= t._id %>" class="font-semibold hover:underline text-accent-3">
+                <%= t.title %>
+              </a>
+              <div class="text-xs text-slate-500 mt-1">
+                by <%= t.author?.username || 'Anonymous' %> • 
+                <%= new Date(t.createdAt).toLocaleString() %>
+              </div>
+            </li>
+          <% }) %>
+        </ul>
+      <% } else { %>
+        <p class="text-slate-500">No recent threads yet.</p>
+      <% } %>
+
+    </section>
+
+  </div>
+
+</div>
+` }) %>

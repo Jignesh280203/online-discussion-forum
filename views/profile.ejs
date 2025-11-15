@@ -1,0 +1,22 @@
+<%- include('layout', { body: `
+<div class="max-w-3xl mx-auto">
+
+  <div class="bg-white p-8 rounded-xl shadow" data-aos="fade-up">
+    <h1 class="text-3xl font-bold mb-4">👤 Your Profile</h1>
+
+    <div class="space-y-3">
+      <p><strong>Username:</strong> <%= currentUser.username %></p>
+      <p><strong>Email:</strong> <%= currentUser.email %></p>
+      <p><strong>Role:</strong> <%= currentUser.role %></p>
+      <p><strong>Joined:</strong> <%= new Date(currentUser.createdAt).toLocaleString() %></p>
+    </div>
+
+    <div class="mt-6">
+      <a href="/threads" class="text-accent-1 font-semibold hover:underline">
+        → View your threads
+      </a>
+    </div>
+  </div>
+
+</div>
+` }) %>

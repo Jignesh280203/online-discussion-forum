@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title><%= title || "Online Discussion Forum" %></title>
+
+  <!-- Tailwind CDN (Colorful theme) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- AOS -->
+  <link href="https://unpkg.com/aos@2.3.4/dist/aos.css" rel="stylesheet">
+
+  <!-- SweetAlert2 -->
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+  <!-- Feather icons -->
+  <script src="https://unpkg.com/feather-icons"></script>
+
+  <style>
+    /* small color accent */
+    :root {
+      --accent-1: #ff7a59; /* coral */
+      --accent-2: #ffd166; /* yellow */
+      --accent-3: #4ecdc4; /* teal */
+      --bg-soft: #f8fbff;
+    }
+    body { background: var(--bg-soft); }
+    .accent { background: linear-gradient(90deg,var(--accent-1),var(--accent-3)); color: white; }
+  </style>
+</head>
+<body class="min-h-screen antialiased text-slate-800">
+
+  <!-- NAV -->
+  <nav class="accent px-6 py-3 shadow-md flex items-center justify-between">
+    <div class="flex items-center gap-3">
+      <div class="text-2xl">💬</div>
+      <a href="/" class="text-xl font-extrabold">ColorForum</a>
+    </div>
+
+    <div class="flex items-center gap-4">
+      <a href="/categories" class="hidden md:inline text-white/90 hover:underline">Categories</a>
+      <a href="/threads" class="hidden md:inline text-white/90 hover:underline">All Threads</a>
+
+      <% if (currentUser) { %>
+        <button id="notifBtn" title="Notifications" class="relative">
+          <i data-feather="bell" class="text-white"></i>
+          <span id="notifBadge" class="hidden absolute -top-2 -right-2 text-xs px-1 rounded-full bg-yellow-300 text-black">0</span>
+        </button>
+
+        <div class="relative" id="profileWrap">
+          <button id="profileBtn" class="flex items-center gap-2 bg-white/10 px-3 py-1 rounded">
+            <span class="w-8 h-8 rounded-full bg-white text-accent-1 flex items-center justify-center font-bold">
+              <%= (currentUser.username && currentUser.username[0]) ? currentUser.username[0].toUpperCase() : "U" %>
+            </span>
+            <div class="text-left text-white/90">
+              <div class="text-sm font-semibold"><%= currentUser.username %></div>
+              <div class="text-xs opacity-80"><%= currentUser.role %></div>
+            </div>
+            <i data-feather="chevron-down" class="text-white"></i>
+          </button>
+
+          <div id="profileDropdown" class="hidden absolute right-0 mt-2 w-48 bg-white text-slate-800 rounded shadow-lg p-2">
+            <a href="/profile" class="block px-3 py-2 hover:bg-slate-100 rounded">My Profile</a>
+            <a href="/notifications" class="block px-3 py-2 hover:bg-slate-100 rounded">Notifications</a>
+            <% if (currentUser && (currentUser.role === 'moderator' || currentUser.role === 'admin')) { %>
+              <a href="/categories" class="block px-3 py-2 hover:bg-slate-100 rounded">Manage Categories</a>
+            <% } %>
+            <% if (currentUser && currentUser.role === 'admin') { %>
+              <a href="/admin" class="block px-3 py-2 hover:bg-slate-100 rounded text-red-600">Admin Panel</a>
+            <% } %>
+            <a href="/logout" class="block px-3 py-2 hover:bg-slate-100 rounded">Logout</a>
+          </div>
+        </div>
+      <% } else { %>
+        <a href="/login" class="text-white/90 hover:underline">Login</a>
+        <a href="/register" class="ml-3 text-white/90 hover:underline">Register</a>
+      <% } %>
+    </div>
+  </nav>
+
+  <div class="flex">
+    <!-- SIDEBAR -->
+    <aside class="hidden md:block w-64 p-5 bg-white/80 border-r h-screen sticky top-0">
+      <div class="mb-4">
+        <h3 class="text-lg font-bold">Quick Links</h3>
+      </div>
+
+      <nav class="space-y-2">
+        <a href="/" class="block p-2 rounded hover:bg-slate-50">🏠 Home</a>
+        <a href="/categories" class="block p-2 rounded hover:bg-slate-50">📂 Categories</a>
+        <a href="/threads" class="block p-2 rounded hover:bg-slate-50">💬 Threads</a>
+        <a href="/notifications" class="block p-2 rounded hover:bg-slate-50">🔔 Notifications</a>
+        <a href="/profile" class="block p-2 rounded hover:bg-slate-50">👤 Profile</a>
+        <% if (currentUser && currentUser.role === 'admin') { %>
+          <a href="/admin" class="block p-2 rounded hover:bg-slate-50 text-red-600">🛠 Admin</a>
+        <% } %>
+      </nav>
+    </aside>
+
+    <!-- MAIN -->
+    <main class="flex-1 p-6 min-h-screen">
+      <div data-aos="fade-up">
+        <%- body %>
+      </div>
+    </main>
+  </div>
+
+  <footer class="text-center py-6 bg-white mt-6 border-t">
+    <p class="text-sm text-slate-600">© <%= new Date().getFullYear() %> ColorForum • Built by You</p>
+  </footer>
+
+  <script>feather.replace();</script>
+  <script src="https://unpkg.com/aos@2.3.4/dist/aos.js"></script>
+  <script>AOS.init({ once:true, duration:650 });</script>
+
+  <script>
+    // profile dropdown
+    document.addEventListener('click', function(e){
+      const btn = document.getElementById('profileBtn');
+      const dd = document.getElementById('profileDropdown');
+      if (!btn) return;
+      if (btn.contains(e.target)) {
+        dd.classList.toggle('hidden');
+      } else if (!dd.contains(e.target)) {
+        dd.classList.add('hidden');
+      }
+    });
+  </script>
+
+  <script src="/js/main.js" defer></script>
+</body>
+</html>

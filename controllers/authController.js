@@ -1,100 +1,74 @@
-// controllers/authController.js
 const User = require("../models/User");
-const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
-require("dotenv").config();
+const jwt = require("jsonwebtoken");
 
-// Render register page
-exports.getRegister = (req, res) => {
-  return res.render("register", { error: null });
-};
+// Helper to send JWT cookie
+function sendToken(res, user) {
+  const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET || "dev_secret", {
+    expiresIn: "7d",
+  });
 
-// Render login page
-exports.getLogin = (req, res) => {
-  return res.render("login", { error: null });
-};
+  res.cookie("token", token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    maxAge: 7 * 24 * 60 * 60 * 1000,
+  });
+}
 
-// Register a new user
-exports.registerUser = async (req, res) => {
+// GET /login (render handled by views)
+exports.login = async (req, res) => {
   try {
-    const { username, email, password } = req.body;
-
-    if (!username || !email || !password) {
-      return res.status(400).render("register", { error: "All fields are required." });
+    const { username, password } = req.body;
+    // Basic validation
+    if (!username || !password) {
+      return res.status(400).render("login", { title: "Login", error_msg: "Username and password required." });
     }
 
-    const existingUser = await User.findOne({ $or: [{ email }, { username }] });
-    if (existingUser) {
-      return res.status(409).render("register", { error: "Email or username already in use." });
-    }
-
-    const newUser = new User({ username, email, password });
-    await newUser.save();
-
-    // Redirect to login after successful registration
-    return res.redirect("/login");
-  } catch (err) {
-    console.error("registerUser error:", err);
-    return res.status(500).render("register", { error: "Server error. Try again." });
-  }
-};
-
-// Login user and set JWT cookie
-exports.loginUser = async (req, res) => {
-  try {
-    const { email, password } = req.body;
-    if (!email || !password) {
-      return res.status(400).render("login", { error: "Email and password are required." });
-    }
-
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ username });
     if (!user) {
-      return res.status(401).render("login", { error: "Invalid email or password." });
+      return res.status(401).render("login", { title: "Login", error_msg: "Invalid credentials." });
     }
 
-    // Use model method if present, otherwise fallback to bcrypt
-    let isMatch = false;
-    if (typeof user.matchPassword === "function") {
-      isMatch = await user.matchPassword(password);
-    } else {
-      isMatch = await bcrypt.compare(password, user.password);
+    const match = await bcrypt.compare(password, user.password);
+    if (!match) {
+      return res.status(401).render("login", { title: "Login", error_msg: "Invalid credentials." });
     }
 
-    if (!isMatch) {
-      return res.status(401).render("login", { error: "Invalid email or password." });
-    }
-
-    // Create token
-    if (!process.env.JWT_SECRET) {
-      console.error("JWT_SECRET is not set in .env");
-      return res.status(500).render("login", { error: "Server configuration error." });
-    }
-
-    const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, {
-      expiresIn: "1d",
-    });
-
-    // Set cookie (httpOnly)
-    res.cookie("token", token, {
-      httpOnly: true,
-      // secure: true, // enable on HTTPS
-      // sameSite: 'strict'
-    });
-
+    sendToken(res, user);
     return res.redirect("/");
   } catch (err) {
-    console.error("loginUser error:", err);
-    return res.status(500).render("login", { error: "Server error. Try again." });
+    console.error("Login error:", err);
+    return res.status(500).render("error", { status: 500, error: "Login failed" });
   }
 };
 
-// Logout user
-exports.logoutUser = (req, res) => {
+// POST /register
+exports.register = async (req, res) => {
   try {
-    res.clearCookie("token");
-    return res.redirect("/login");
+    const { username, email, password } = req.body;
+    if (!username || !email || !password) {
+      return res.status(400).render("register", { title: "Register", error_msg: "All fields required." });
+    }
+
+    const exists = await User.findOne({ $or: [{ username }, { email }] });
+    if (exists) {
+      return res.status(400).render("register", { title: "Register", error_msg: "Username or email already in use." });
+    }
+
+    const hashed = await bcrypt.hash(password, 10);
+    const user = await User.create({ username, email, password: hashed, role: "user" });
+
+    sendToken(res, user);
+    return res.redirect("/");
   } catch (err) {
-    console.error("logoutUser error:", err);
-    return res.status(500).send("Server error while logging out");
+    console.error("Register error:", err);
+    return res.status(500).render("error", { status: 500, error: "Registration failed" });
   }
+};
+
+// GET /logout
+exports.logout = (req, res) => {
+  res.clearCookie("token");
+  return res.redirect("/login");
 };

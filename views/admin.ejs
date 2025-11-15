@@ -1,0 +1,26 @@
+<%- include('layout', { body: `
+<div class="max-w-5xl mx-auto">
+
+  <h1 class="text-3xl font-bold mb-6">🛠 Admin Panel</h1>
+
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+    <div class="bg-white p-6 rounded-xl shadow">
+      <h3 class="text-xl font-semibold mb-3">Manage Users</h3>
+      <p class="text-slate-500 text-sm">Feature: Promote, demote, delete users (coming soon)</p>
+    </div>
+
+    <div class="bg-white p-6 rounded-xl shadow">
+      <h3 class="text-xl font-semibold mb-3">Manage Threads</h3>
+      <p class="text-slate-500 text-sm">Feature: Remove harmful threads</p>
+    </div>
+
+    <div class="bg-white p-6 rounded-xl shadow">
+      <h3 class="text-xl font-semibold mb-3">Manage Categories</h3>
+      <a href="/categories" class="text-accent-1 hover:underline">Open Categories →</a>
+    </div>
+
+  </div>
+
+</div>
+` }) %>

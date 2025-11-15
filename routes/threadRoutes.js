@@ -1,25 +1,30 @@
+// routes/threadRoutes.js
 const express = require("express");
 const router = express.Router();
-const Thread = require("../models/Thread");
+
+const {
+  getAllThreads,
+  createThread,
+  viewThread,
+  voteThread,
+  deleteThread
+} = require("../controllers/threadController");
+
 const { protect } = require("../middleware/authMiddleware");
-const { createThread } = require("../controllers/threadController");
 
-// List all threads
-router.get("/", async (req, res) => {
-  try {
-    const threads = await Thread.find()
-      .populate("author", "username")
-      .populate("category", "name")
-      .sort({ createdAt: -1 });
+// Show all threads
+router.get("/", getAllThreads);
 
-    res.render("threads", { title: "All Threads", threads });
-  } catch (err) {
-    console.error(err);
-    res.status(500).send("Error loading threads");
-  }
-});
+// Create a thread (must be logged in)
+router.post("/", protect, createThread);
 
-// Create thread inside category
-router.post("/:categoryId", protect, createThread);
+// View a single thread (and comments)
+router.get("/:id", viewThread);
+
+// Vote on a thread (up/down via req.body.type 'up'|'down')
+router.post("/:id/vote", protect, voteThread);
+
+// Delete thread (author, moderator, admin)
+router.post("/:id/delete", protect, deleteThread);
 
 module.exports = router;

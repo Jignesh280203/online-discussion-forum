@@ -1,17 +1,41 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>Login</title>
-  <link rel="stylesheet" href="/css/style.css">
-</head>
-<body>
-  <h2>Login 🔐</h2>
-  <form action="/login" method="POST">
-    <input type="email" name="email" placeholder="Email" required><br>
-    <input type="password" name="password" placeholder="Password" required><br>
-    <button type="submit">Login</button>
-  </form>
-  <p>Don’t have an account? <a href="/register">Register</a></p>
-</body>
-</html>
+<%- include('layout', { body: `
+<div class="max-w-md mx-auto mt-16">
+
+  <div class="bg-white p-8 rounded-2xl shadow-xl" data-aos="fade-up">
+    <h1 class="text-3xl font-bold text-center text-slate-800 mb-6">Welcome Back 👋</h1>
+
+    <form action="/login" method="POST" class="space-y-4">
+
+      <div>
+        <label class="text-sm font-semibold">Username</label>
+        <input 
+          type="text" 
+          name="username"
+          required 
+          class="w-full p-3 border rounded-lg focus:ring-accent-1 focus:outline-none"
+          placeholder="Enter your username">
+      </div>
+
+      <div>
+        <label class="text-sm font-semibold">Password</label>
+        <input 
+          type="password" 
+          name="password"
+          required 
+          class="w-full p-3 border rounded-lg focus:ring-accent-1 focus:outline-none"
+          placeholder="Enter your password">
+      </div>
+
+      <button class="w-full py-3 bg-accent-1 text-white rounded-xl font-semibold hover:opacity-90 shadow-lg">
+        Login
+      </button>
+
+    </form>
+
+    <p class="mt-5 text-center text-slate-600 text-sm">
+      Don’t have an account? 
+      <a href="/register" class="text-accent-3 font-semibold hover:underline">Register</a>
+    </p>
+  </div>
+</div>
+` }) %>

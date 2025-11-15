@@ -4,7 +4,6 @@ const path = require("path");
 const dotenv = require("dotenv");
 const cookieParser = require("cookie-parser");
 const connectDB = require("./utils/db");
-const { protect } = require("./middleware/authMiddleware");
 
 // Security
 const helmet = require("helmet");
@@ -34,7 +33,7 @@ app.use(
   })
 );
 
-// Static
+// Static files
 app.use(express.static(path.join(__dirname, "public")));
 
 // View engine
@@ -44,10 +43,13 @@ app.set("views", path.join(__dirname, "views"));
 // Connect DB
 connectDB();
 
-// Protect middleware (attach user if token exists)
-app.use(protect);
+// Auth middleware
+const { protect, attachUser } = require("./middleware/authMiddleware");
 
-// Make user available globally
+// Attach user if token exists
+app.use(attachUser);
+
+// Make user global for all EJS
 app.use((req, res, next) => {
   res.locals.currentUser = req.user || null;
   next();
@@ -55,39 +57,35 @@ app.use((req, res, next) => {
 
 /* ============================
        ROUTES REGISTRATION
-   ============================ */
+============================ */
 
 const authRoutes = require("./routes/authRoutes");
 const categoryRoutes = require("./routes/categoryRoutes");
 const threadRoutes = require("./routes/threadRoutes");
 const commentRoutes = require("./routes/commentRoutes");
+const { dashboard } = require("./controllers/homeController");
 
-// Register routes
+// Dashboard Route (🔥 IMPORTANT)
+app.get("/", dashboard);
+
+// Main Routes
 app.use("/", authRoutes);
 app.use("/categories", categoryRoutes);
 app.use("/threads", threadRoutes);
 app.use("/comments", commentRoutes);
 
 /* ============================
-       DASHBOARD ROUTES
-   ============================ */
+       PROTECTED ROUTES
+============================ */
 
-// Home Dashboard
-app.get("/", (req, res) => {
-  res.render("index", { title: "Dashboard" });
-});
-
-// Profile Page
 app.get("/profile", protect, (req, res) => {
   res.render("profile", { title: "Your Profile" });
 });
 
-// Notifications Page
 app.get("/notifications", protect, (req, res) => {
   res.render("notifications", { title: "Notifications" });
 });
 
-// Admin Page (only admin allowed)
 app.get("/admin", protect, (req, res) => {
   if (req.user.role !== "admin") {
     return res.status(403).send("Not authorized");
@@ -97,37 +95,31 @@ app.get("/admin", protect, (req, res) => {
 
 /* ============================
            ERROR HANDLERS
-   ============================ */
+============================ */
 
-// 404
 app.use((req, res) => {
-  res.status(404);
-  res.render("404", { url: req.originalUrl });
+  res.status(404).render("404", { url: req.originalUrl });
 });
 
-// Central Error Handler
 app.use((err, req, res, next) => {
-  console.error("Unhandled error:", err.stack || err);
-  const status = err.status || 500;
-
-  res.status(status);
-  return res.render("error", {
-    status,
-    error: err.message || "Server error",
+  console.error("Unhandled error:", err);
+  res.status(500).render("error", {
+    status: 500,
+    error: err.message || "Server Error",
   });
 });
 
 /* ============================
-         START SERVER
-   ============================ */
+            START SERVER
+============================ */
 
 const PORT = process.env.PORT || 3000;
 
 const server = app.listen(PORT, () => {
-  console.log(`🚀 Server running on http://localhost:${PORT}`);
+  console.log(`🚀 Server running on port ${PORT}`);
 });
 
-// Handle PORT errors
+// Port Error
 server.on("error", (err) => {
   if (err.code === "EADDRINUSE") {
     console.error(`❌ Port ${PORT} already in use.`);
@@ -137,13 +129,5 @@ server.on("error", (err) => {
 });
 
 // Graceful shutdown
-const shutdown = (signal) => {
-  console.log(`\nReceived ${signal}, shutting down...`);
-  server.close(() => {
-    console.log("Server closed.");
-    process.exit(0);
-  });
-};
-
-process.on("SIGINT", () => shutdown("SIGINT"));
-process.on("SIGTERM", () => shutdown("SIGTERM"));
+process.on("SIGINT", () => process.exit());
+process.on("SIGTERM", () => process.exit());

@@ -1,0 +1,12 @@
+<%- include('layout', { body: `
+<div class="text-center mt-20">
+
+  <h1 class="text-5xl font-bold text-red-500">⚠️ Error <%= status %></h1>
+  <p class="text-xl text-slate-700 mt-2"><%= error %></p>
+
+  <a href="/" class="mt-6 inline-block px-5 py-3 bg-accent-1 text-white rounded-lg shadow hover:opacity-90">
+    Go Home
+  </a>
+
+</div>
+` }) %>

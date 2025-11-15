@@ -1,83 +1,118 @@
+// controllers/threadController.js
 const Thread = require("../models/Thread");
-const Category = require("../models/Category");
 const Comment = require("../models/Comment");
 
-// ➕ Create new thread
-exports.createThread = async (req, res) => {
+exports.getAllThreads = async (req, res) => {
   try {
-    const { title, content } = req.body;
-    const categoryId = req.params.categoryId;
+    const threads = await Thread.find()
+      .populate("author", "username")
+      .sort({ createdAt: -1 })
+      .lean();
 
-    await Thread.create({
-      title,
-      content,
-      category: categoryId,
-      author: null // Will connect with user later
-    });
+    // Add comment counts (top-level comments only)
+    const threadsWithCounts = await Promise.all(threads.map(async t => {
+      const count = await Comment.countDocuments({ thread: t._id });
+      return { ...t, commentsCount: count };
+    }));
 
-    res.redirect(`/categories/${categoryId}`);
+    res.render("threads", { title: "All Threads", threads: threadsWithCounts });
   } catch (err) {
-    console.error(err);
-    res.send("❌ Error creating thread");
+    console.error("Get Threads Error:", err);
+    res.status(500).render("error", { status: 500, error: "Failed to load threads" });
   }
 };
 
-// 🗨️ Add comment to a thread
-exports.addComment = async (req, res) => {
-  try {
-    const { content } = req.body;
-    const threadId = req.params.threadId;
-
-    await Comment.create({
-      content,
-      thread: threadId,
-      author: null // attach logged user later
-    });
-
-    res.redirect(`/threads/${threadId}`);
-  } catch (err) {
-    console.error(err);
-    res.send("❌ Error adding comment");
-  }
-};
-
-// 📄 View a single thread and its comments
 exports.viewThread = async (req, res) => {
   try {
-    const thread = await Thread.findById(req.params.id).populate("author category");
-    const comments = await Comment.find({ thread: thread._id }).populate("author");
-    res.render("thread_view", { thread, comments, title: thread.title });
+    const thread = await Thread.findById(req.params.id)
+      .populate("author", "username")
+      .lean();
+
+    if (!thread) return res.status(404).render("404", { url: req.originalUrl });
+
+    // Fetch comments for this thread, including replies (Twitter-style: parent points to top comment)
+    // We'll fetch all comments for thread, and display replies under their parent comment in the view.
+    const comments = await Comment.find({ thread: thread._id })
+      .populate("author", "username")
+      .sort({ createdAt: 1 })
+      .lean();
+
+    // Build a map: parentId -> [comments]
+    const repliesMap = {};
+    const topLevel = [];
+    comments.forEach(c => {
+      if (c.parent) {
+        const pid = c.parent.toString();
+        if (!repliesMap[pid]) repliesMap[pid] = [];
+        repliesMap[pid].push(c);
+      } else {
+        topLevel.push(c);
+      }
+    });
+
+    res.render("thread_view", {
+      title: thread.title,
+      thread,
+      comments: topLevel,
+      repliesMap
+    });
   } catch (err) {
-    console.error(err);
-    res.send("❌ Error loading thread view");
+    console.error("View Thread Error:", err);
+    res.status(500).render("error", { status: 500, error: "Failed to load thread" });
   }
 };
 
-// ⬆️⬇️ Vote on a thread
+exports.createThread = async (req, res) => {
+  try {
+    const { title, content, category } = req.body;
+    if (!title || !content) {
+      return res.status(400).render("threads", { error_msg: "Title and content required." });
+    }
+
+    const newThread = await Thread.create({
+      title: title.trim(),
+      content: content.trim(),
+      category: category || null,
+      author: req.user._id
+    });
+
+    res.redirect(`/threads/${newThread._id}`);
+  } catch (err) {
+    console.error("Create Thread Error:", err);
+    res.status(500).render("error", { status: 500, error: "Failed to create thread" });
+  }
+};
+
 exports.voteThread = async (req, res) => {
   try {
-    const { type } = req.params; // 'up' or 'down'
-    const thread = await Thread.findById(req.params.id);
-    if (!thread) return res.send("Thread not found");
-
-    if (type === "up") thread.votes += 1;
-    if (type === "down") thread.votes -= 1;
-    await thread.save();
-
-    res.redirect(`/threads/${thread._id}`);
+    const { type } = req.body; // 'up' or 'down'
+    const inc = type === "up" ? 1 : -1;
+    await Thread.findByIdAndUpdate(req.params.id, { $inc: { votes: inc }});
+    // prefer redirect back to referer if available
+    return res.redirect(req.get("referer") || `/threads/${req.params.id}`);
   } catch (err) {
-    console.error(err);
-    res.send("❌ Error voting on thread");
+    console.error("Vote thread error:", err);
+    res.status(500).render("error", { status: 500, error: "Failed to vote" });
   }
 };
 
-// 🧰 Delete thread (moderator/admin)
 exports.deleteThread = async (req, res) => {
   try {
-    await Thread.findByIdAndDelete(req.params.id);
-    res.redirect("/categories");
+    const thread = await Thread.findById(req.params.id);
+    if (!thread) return res.redirect("back");
+
+    // Only author or moderator/admin
+    if (thread.author.toString() !== req.user._id.toString() && !["admin", "moderator"].includes(req.user.role)) {
+      return res.status(403).render("error", { status: 403, error: "Forbidden" });
+    }
+
+    // Delete comments in thread
+    await Comment.deleteMany({ thread: thread._id });
+    await Thread.findByIdAndDelete(thread._id);
+
+    res.redirect("/threads");
   } catch (err) {
-    console.error(err);
-    res.send("❌ Error deleting thread");
+    console.error("Delete thread error:", err);
+    res.status(500).render("error", { status: 500, error: "Failed to delete thread" });
   }
 };

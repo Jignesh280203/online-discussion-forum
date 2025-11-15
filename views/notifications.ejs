@@ -1,0 +1,20 @@
+<%- include('layout', { body: `
+<div class="max-w-4xl mx-auto">
+
+  <h1 class="text-3xl font-bold mb-4">🔔 Notifications</h1>
+
+  <% if (notifications && notifications.length > 0) { %>
+    <div class="space-y-4">
+      <% notifications.forEach(n => { %>
+        <div class="bg-white p-4 rounded-xl shadow hover:shadow-md transition">
+          <p class="text-slate-700"><%= n.message %></p>
+          <small class="text-slate-500"><%= new Date(n.createdAt).toLocaleString() %></small>
+        </div>
+      <% }) %>
+    </div>
+  <% } else { %>
+    <p class="text-slate-600">No notifications yet.</p>
+  <% } %>
+
+</div>
+` }) %>

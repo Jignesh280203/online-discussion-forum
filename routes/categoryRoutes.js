@@ -1,5 +1,6 @@
 const express = require("express");
 const router = express.Router();
+
 const {
   getAllCategories,
   createCategory,
@@ -7,18 +8,18 @@ const {
   deleteCategory,
 } = require("../controllers/categoryController");
 
-const { createThread } = require("../controllers/threadController");
-const { restrictTo } = require("../middleware/authMiddleware");
+const { protect, restrictTo } = require("../middleware/authMiddleware");
 
-// 🧭 Category routes
-router.get("/", getAllCategories);                 // Show all categories
-router.post("/", createCategory);                 // Create category
-router.get("/:id", viewCategoryThreads);           // View threads in a category
+// Show categories
+router.get("/", getAllCategories);
 
-// ➕ Create new thread inside category
-router.post("/:categoryId/threads", createThread);
+// Create category (only moderator/admin)
+router.post("/", protect, restrictTo("moderator", "admin"), createCategory);
 
-// 🗑️ Delete a category (only for moderator/admin)
-router.get("/:id/delete", restrictTo("moderator", "admin"), deleteCategory);
+// View threads inside a category
+router.get("/:id", viewCategoryThreads);
+
+// Delete category (only moderator/admin)
+router.get("/:id/delete", protect, restrictTo("moderator", "admin"), deleteCategory);
 
 module.exports = router;
