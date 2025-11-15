@@ -6,141 +6,144 @@ const cookieParser = require("cookie-parser");
 const connectDB = require("./utils/db");
 const { protect } = require("./middleware/authMiddleware");
 
-// Security & dev tools
+// Security
 const helmet = require("helmet");
 const morgan = require("morgan");
 const rateLimit = require("express-rate-limit");
 
-// Optional: flash messages (uncomment if you want flash)
-const session = require("express-session");
-const flash = require("connect-flash");
-
 dotenv.config();
 const app = express();
 
-// Trust proxy if deployed behind a proxy/load balancer (Render, Heroku, etc.)
+// Trust proxy (Render)
 if (process.env.TRUST_PROXY === "true") {
   app.set("trust proxy", 1);
 }
 
-// Middleware: security, logging, parsing
+// Security + parsers
 app.use(helmet());
 app.use(morgan(process.env.NODE_ENV === "production" ? "combined" : "dev"));
-
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
-// Rate limiter (basic)
-const limiter = rateLimit({
-  windowMs: 1 * 60 * 1000, // 1 minute
-  max: 100, // limit each IP to 100 requests per windowMs
-});
-app.use(limiter);
+// Rate limit
+app.use(
+  rateLimit({
+    windowMs: 60 * 1000,
+    max: 100,
+  })
+);
 
 // Static
 app.use(express.static(path.join(__dirname, "public")));
 
-// Optional: Express-session + flash (useful for server-side messages)
-// Uncomment the block below if you installed express-session & connect-flash
-/*
-app.use(session({
-  secret: process.env.SESSION_SECRET || process.env.JWT_SECRET || "forumSecret",
-  resave: false,
-  saveUninitialized: false,
-  cookie: {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production", // secure cookie in production (HTTPS)
-    sameSite: "lax"
-  }
-}));
-app.use(flash());
-
-// Make flash available in templates
-app.use((req, res, next) => {
-  res.locals.success_msg = req.flash("success_msg");
-  res.locals.error_msg = req.flash("error_msg");
-  next();
-});
-*/
-
-// Set view engine
+// View engine
 app.set("view engine", "ejs");
 app.set("views", path.join(__dirname, "views"));
 
 // Connect DB
 connectDB();
 
-// Protect middleware (attach req.user if token present)
+// Protect middleware (attach user if token exists)
 app.use(protect);
 
-// Make user available in all templates
+// Make user available globally
 app.use((req, res, next) => {
   res.locals.currentUser = req.user || null;
   next();
 });
 
-// Routes
+/* ============================
+       ROUTES REGISTRATION
+   ============================ */
+
 const authRoutes = require("./routes/authRoutes");
 const categoryRoutes = require("./routes/categoryRoutes");
 const threadRoutes = require("./routes/threadRoutes");
+const commentRoutes = require("./routes/commentRoutes");
 
-// Mount routes
-app.use("/threads", threadRoutes);
+// Register routes
 app.use("/", authRoutes);
 app.use("/categories", categoryRoutes);
+app.use("/threads", threadRoutes);
+app.use("/comments", commentRoutes);
 
-// Home route
+/* ============================
+       DASHBOARD ROUTES
+   ============================ */
+
+// Home Dashboard
 app.get("/", (req, res) => {
-  res.render("index", { title: "Home" });
+  res.render("index", { title: "Dashboard" });
 });
 
-// 404 handler
-app.use((req, res, next) => {
+// Profile Page
+app.get("/profile", protect, (req, res) => {
+  res.render("profile", { title: "Your Profile" });
+});
+
+// Notifications Page
+app.get("/notifications", protect, (req, res) => {
+  res.render("notifications", { title: "Notifications" });
+});
+
+// Admin Page (only admin allowed)
+app.get("/admin", protect, (req, res) => {
+  if (req.user.role !== "admin") {
+    return res.status(403).send("Not authorized");
+  }
+  res.render("admin", { title: "Admin Dashboard" });
+});
+
+/* ============================
+           ERROR HANDLERS
+   ============================ */
+
+// 404
+app.use((req, res) => {
   res.status(404);
-  if (req.accepts("html")) {
-    return res.render("404", { url: req.originalUrl });
-  }
-  if (req.accepts("json")) {
-    return res.json({ error: "Not found" });
-  }
-  res.type("txt").send("Not found");
+  res.render("404", { url: req.originalUrl });
 });
 
-// Central error handler
+// Central Error Handler
 app.use((err, req, res, next) => {
   console.error("Unhandled error:", err.stack || err);
   const status = err.status || 500;
+
   res.status(status);
-  if (req.accepts("json") && !req.accepts("html")) {
-    return res.json({ error: err.message || "Server error" });
-  }
-  return res.render("error", { error: err, status });
+  return res.render("error", {
+    status,
+    error: err.message || "Server error",
+  });
 });
 
-// ✅ Improved Start Server Section
+/* ============================
+         START SERVER
+   ============================ */
+
 const PORT = process.env.PORT || 3000;
 
 const server = app.listen(PORT, () => {
-  console.log(`🚀 Server running on http://localhost:${PORT} (env=${process.env.NODE_ENV || "dev"})`);
+  console.log(`🚀 Server running on http://localhost:${PORT}`);
 });
 
-// ✅ Handle Port Already In Use Error
+// Handle PORT errors
 server.on("error", (err) => {
   if (err.code === "EADDRINUSE") {
-    console.error(`❌ Port ${PORT} is busy. Try another port!`);
+    console.error(`❌ Port ${PORT} already in use.`);
   } else {
-    console.error("Server Error:", err);
+    console.error(err);
   }
 });
 
-// ✅ Graceful Shutdown (Safe Exit)
+// Graceful shutdown
 const shutdown = (signal) => {
-  console.log(`\nReceived ${signal}, closing server...`);
+  console.log(`\nReceived ${signal}, shutting down...`);
   server.close(() => {
     console.log("Server closed.");
     process.exit(0);
   });
 };
+
 process.on("SIGINT", () => shutdown("SIGINT"));
 process.on("SIGTERM", () => shutdown("SIGTERM"));

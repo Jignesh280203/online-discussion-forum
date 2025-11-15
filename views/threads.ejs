@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Threads</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="bg-gray-100">
+
+  <header class="bg-blue-700 text-white p-4 text-center text-3xl font-bold">
+    📝 All Discussion Threads
+  </header>
+
+  <main class="max-w-4xl mx-auto p-6">
+
+    <% if (threads.length === 0) { %>
+      <p class="text-center text-gray-600 mt-10">No threads yet.</p>
+    <% } else { %>
+
+      <div class="space-y-4">
+        <% threads.forEach(t => { %>
+          <div class="bg-white shadow-md p-4 rounded-xl">
+            <h2 class="text-2xl font-semibold"><%= t.title %></h2>
+            <p class="text-gray-700 mt-2"><%= t.content %></p>
+
+            <p class="text-sm text-gray-500 mt-3">
+              📂 <strong><%= t.category.name %></strong> |
+              ✍️ <%= t.author.username %> |
+              🕒 <%= new Date(t.createdAt).toLocaleString() %>
+            </p>
+          </div>
+        <% }) %>
+      </div>
+
+    <% } %>
+
+  </main>
+</body>
+</html>

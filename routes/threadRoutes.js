@@ -1,23 +1,25 @@
 const express = require("express");
 const router = express.Router();
-const {
-  viewThread,
-  addComment,
-  voteThread,
-  deleteThread
-} = require("../controllers/threadController");
+const Thread = require("../models/Thread");
+const { protect } = require("../middleware/authMiddleware");
+const { createThread } = require("../controllers/threadController");
 
-// 🧵 View single thread
-router.get("/:id", viewThread);
+// List all threads
+router.get("/", async (req, res) => {
+  try {
+    const threads = await Thread.find()
+      .populate("author", "username")
+      .populate("category", "name")
+      .sort({ createdAt: -1 });
 
-// 💬 Add comment
-router.post("/:threadId/comments", addComment);
+    res.render("threads", { title: "All Threads", threads });
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("Error loading threads");
+  }
+});
 
-// ⬆️⬇️ Voting
-router.get("/:id/vote/:type", voteThread);
-
-// 🧰 Delete thread
-const { restrictTo } = require("../middleware/authMiddleware");
-router.get("/:id/delete", restrictTo("moderator", "admin"), deleteThread);
+// Create thread inside category
+router.post("/:categoryId", protect, createThread);
 
 module.exports = router;
