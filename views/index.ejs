@@ -2,26 +2,84 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title><%= title %></title>
+  <title>Dashboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/aos@next/dist/aos.js"></script>
   <link rel="stylesheet" href="/css/style.css">
 </head>
-<body>
-  <header>
-    <h1>Discussion Categories 🗂️</h1>
-  
+
+<body class="bg-gray-100">
+
+  <!-- Header -->
+  <header class="bg-blue-600 text-white p-6 shadow-md">
+    <h1 class="text-4xl font-bold text-center">Discussion Forum 💬</h1>
+
     <% if (currentUser) { %>
-     <p>👋 Welcome, <strong><%= currentUser.username %></strong> 
-      (<%= currentUser.role %>) 
-      | <a href="/logout">Logout</a>
-     </p>
-    <% } else { %>
-     <p><a href="/login">Login</a> | <a href="/register">Register</a></p>
+      <p class="text-center mt-2 text-lg">
+        👋 Welcome, <strong><%= currentUser.username %></strong> 
+        (<%= currentUser.role %>) |
+        <a href="/logout" class="underline">Logout</a>
+      </p>
     <% } %>
   </header>
 
-  <main>
-    <p>Welcome to your new discussion forum!</p>
-    <p>Server and MongoDB connected successfully 🚀</p>
+  <main class="max-w-5xl mx-auto p-8">
+
+    <!-- Dashboard Cards -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+
+      <!-- Categories -->
+      <a href="/categories" data-aos="fade-up"
+        class="bg-white p-6 rounded-xl shadow hover:shadow-xl transition">
+        <h2 class="text-2xl font-semibold mb-2">📂 Categories</h2>
+        <p class="text-gray-600">Browse all discussion categories.</p>
+      </a>
+
+      <!-- Threads -->
+      <a href="/threads" data-aos="fade-up"
+        class="bg-white p-6 rounded-xl shadow hover:shadow-xl transition">
+        <h2 class="text-2xl font-semibold mb-2">📝 Threads</h2>
+        <p class="text-gray-600">View all discussion threads.</p>
+      </a>
+
+      <!-- Create Category -->
+      <% if (currentUser?.role === "moderator" || currentUser?.role === "admin") { %>
+      <a href="/categories" data-aos="fade-up"
+        class="bg-white p-6 rounded-xl shadow hover:shadow-xl transition">
+        <h2 class="text-2xl font-semibold mb-2">➕ Create Category</h2>
+        <p class="text-gray-600">Moderators/Admins can add new categories.</p>
+      </a>
+      <% } %>
+
+      <!-- Notifications -->
+      <a href="/notifications" data-aos="fade-up"
+        class="bg-white p-6 rounded-xl shadow hover:shadow-xl transition">
+        <h2 class="text-2xl font-semibold mb-2">🔔 Notifications</h2>
+        <p class="text-gray-600">See replies & updates.</p>
+      </a>
+
+      <!-- Profile -->
+      <a href="/profile" data-aos="fade-up"
+        class="bg-white p-6 rounded-xl shadow hover:shadow-xl transition">
+        <h2 class="text-2xl font-semibold mb-2">👤 Profile</h2>
+        <p class="text-gray-600">View your profile & activity.</p>
+      </a>
+
+      <!-- Admin Panel -->
+      <% if (currentUser?.role === "admin") { %>
+      <a href="/admin" data-aos="fade-up"
+        class="bg-white p-6 rounded-xl shadow hover:shadow-xl transition">
+        <h2 class="text-2xl font-semibold mb-2">🛠 Admin Panel</h2>
+        <p class="text-gray-600">Manage users & website settings.</p>
+      </a>
+      <% } %>
+
+    </div>
+
   </main>
+
+  <script>
+    AOS.init();
+  </script>
 </body>
 </html>
