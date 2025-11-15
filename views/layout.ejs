@@ -5,28 +5,20 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title><%= title || "Online Discussion Forum" %></title>
 
-  <!-- Tailwind CDN (Colorful theme) -->
   <script src="https://cdn.tailwindcss.com"></script>
-
-  <!-- AOS -->
   <link href="https://unpkg.com/aos@2.3.4/dist/aos.css" rel="stylesheet">
-
-  <!-- SweetAlert2 -->
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-
-  <!-- Feather icons -->
   <script src="https://unpkg.com/feather-icons"></script>
 
   <style>
-    /* small color accent */
     :root {
-      --accent-1: #ff7a59; /* coral */
-      --accent-2: #ffd166; /* yellow */
-      --accent-3: #4ecdc4; /* teal */
+      --accent-1: #ff7a59;
+      --accent-2: #ffd166;
+      --accent-3: #4ecdc4;
       --bg-soft: #f8fbff;
     }
     body { background: var(--bg-soft); }
-    .accent { background: linear-gradient(90deg,var(--accent-1),var(--accent-3)); color: white; }
+    .accent { background: linear-gradient(90deg,var(--accent-1),var(--accent-3)); color:white; }
   </style>
 </head>
 <body class="min-h-screen antialiased text-slate-800">
@@ -51,7 +43,7 @@
         <div class="relative" id="profileWrap">
           <button id="profileBtn" class="flex items-center gap-2 bg-white/10 px-3 py-1 rounded">
             <span class="w-8 h-8 rounded-full bg-white text-accent-1 flex items-center justify-center font-bold">
-              <%= (currentUser.username && currentUser.username[0]) ? currentUser.username[0].toUpperCase() : "U" %>
+              <%= currentUser.username ? currentUser.username[0].toUpperCase() : "U" %>
             </span>
             <div class="text-left text-white/90">
               <div class="text-sm font-semibold"><%= currentUser.username %></div>
@@ -63,12 +55,15 @@
           <div id="profileDropdown" class="hidden absolute right-0 mt-2 w-48 bg-white text-slate-800 rounded shadow-lg p-2">
             <a href="/profile" class="block px-3 py-2 hover:bg-slate-100 rounded">My Profile</a>
             <a href="/notifications" class="block px-3 py-2 hover:bg-slate-100 rounded">Notifications</a>
-            <% if (currentUser && (currentUser.role === 'moderator' || currentUser.role === 'admin')) { %>
+
+            <% if (currentUser.role === 'moderator' || currentUser.role === 'admin') { %>
               <a href="/categories" class="block px-3 py-2 hover:bg-slate-100 rounded">Manage Categories</a>
             <% } %>
-            <% if (currentUser && currentUser.role === 'admin') { %>
+
+            <% if (currentUser.role === 'admin') { %>
               <a href="/admin" class="block px-3 py-2 hover:bg-slate-100 rounded text-red-600">Admin Panel</a>
             <% } %>
+
             <a href="/logout" class="block px-3 py-2 hover:bg-slate-100 rounded">Logout</a>
           </div>
         </div>
@@ -82,10 +77,7 @@
   <div class="flex">
     <!-- SIDEBAR -->
     <aside class="hidden md:block w-64 p-5 bg-white/80 border-r h-screen sticky top-0">
-      <div class="mb-4">
-        <h3 class="text-lg font-bold">Quick Links</h3>
-      </div>
-
+      <h3 class="text-lg font-bold mb-3">Quick Links</h3>
       <nav class="space-y-2">
         <a href="/" class="block p-2 rounded hover:bg-slate-50">🏠 Home</a>
         <a href="/categories" class="block p-2 rounded hover:bg-slate-50">📂 Categories</a>
@@ -101,7 +93,8 @@
     <!-- MAIN -->
     <main class="flex-1 p-6 min-h-screen">
       <div data-aos="fade-up">
-        <%- body %>
+        <!-- IMPORTANT FIX → body replaced with yield -->
+        <%- typeof body !== "undefined" ? body : "" %>
       </div>
     </main>
   </div>
@@ -115,19 +108,14 @@
   <script>AOS.init({ once:true, duration:650 });</script>
 
   <script>
-    // profile dropdown
-    document.addEventListener('click', function(e){
+    document.addEventListener('click', (e) => {
       const btn = document.getElementById('profileBtn');
       const dd = document.getElementById('profileDropdown');
       if (!btn) return;
-      if (btn.contains(e.target)) {
-        dd.classList.toggle('hidden');
-      } else if (!dd.contains(e.target)) {
-        dd.classList.add('hidden');
-      }
+      if (btn.contains(e.target)) dd.classList.toggle('hidden');
+      else if (!dd.contains(e.target)) dd.classList.add('hidden');
     });
   </script>
 
-  <script src="/js/main.js" defer></script>
 </body>
 </html>
