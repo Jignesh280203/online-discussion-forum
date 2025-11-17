@@ -1,3 +1,4 @@
+// controllers/homeController.js
 const Category = require("../models/Category");
 const Thread = require("../models/Thread");
 const Comment = require("../models/Comment");
@@ -14,9 +15,9 @@ exports.dashboard = async (req, res) => {
     const trending = await Thread.find().sort({ votes: -1 }).limit(6).lean();
     const recent = await Thread.find().sort({ createdAt: -1 }).limit(6).populate("author", "username").lean();
 
-    res.render("index", { stats, trending, recent, title: "Dashboard" });
+    res.render("index", { stats, trending, recent, title: "Home" });
   } catch (err) {
     console.error("Dashboard error:", err);
-    res.status(500).render("error", { status: 500, error: "Failed to load dashboard" });
+    res.status(500).render("error", { error: err.message, status: 500 });
   }
 };

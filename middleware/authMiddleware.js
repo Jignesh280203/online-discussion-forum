@@ -1,53 +1,63 @@
+// middleware/authMiddleware.js
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
+const dotenv = require("dotenv");
+dotenv.config();
 
-// 🔹 Middleware 1 — Attach user if token exists (public pages allowed)
+const getTokenFromReq = (req) => {
+  // cookie token or Authorization header Bearer
+  if (req.cookies && req.cookies.token) return req.cookies.token;
+  if (req.headers.authorization && req.headers.authorization.startsWith("Bearer ")) {
+    return req.headers.authorization.split(" ")[1];
+  }
+  return null;
+};
+
+// Attach user if token present (no failure)
 exports.attachUser = async (req, res, next) => {
   try {
-    const token = req.cookies.token;
-
-    if (!token) {
-      req.user = null;
-      return next();
-    }
-
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || "dev_secret");
-    req.user = await User.findById(decoded.id).select("-password");
-
-    next();
+    const token = getTokenFromReq(req);
+    if (!token) return next();
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const user = await User.findById(decoded.id).select("-password").lean();
+    if (user) req.user = user;
+    return next();
   } catch (err) {
-    req.user = null;
-    next();
+    // silent attach failure
+    return next();
   }
 };
 
-// 🔹 Middleware 2 — Ensure login required
+// Protect: require auth, else redirect to login (for pages) or 401 for api
 exports.protect = async (req, res, next) => {
   try {
-    const token = req.cookies.token;
-    if (!token) return res.redirect("/login");
-
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || "dev_secret");
-    req.user = await User.findById(decoded.id).select("-password");
-
-    if (!req.user) return res.redirect("/login");
-
+    const token = getTokenFromReq(req);
+    if (!token) {
+      // If expects HTML, redirect
+      if (req.accepts("html")) return res.redirect("/login");
+      return res.status(401).json({ message: "Not authorized" });
+    }
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const user = await User.findById(decoded.id).select("-password").lean();
+    if (!user) {
+      if (req.accepts("html")) return res.redirect("/login");
+      return res.status(401).json({ message: "Not authorized" });
+    }
+    req.user = user;
     next();
   } catch (err) {
-    return res.redirect("/login");
+    console.error("Auth error:", err.message);
+    if (req.accepts("html")) return res.redirect("/login");
+    return res.status(401).json({ message: "Token invalid" });
   }
 };
 
-// 🔹 Middleware 3 — Restrict by role (admin, moderator, etc.)
+// Restrict to roles
 exports.restrictTo = (...roles) => {
   return (req, res, next) => {
-    if (!req.user) return res.redirect("/login");
-
-    if (!roles.includes(req.user.role)) {
-      return res.status(403).render("error", {
-        status: 403,
-        error: "You are not authorized for this action",
-      });
+    if (!req.user || !roles.includes(req.user.role)) {
+      if (req.accepts("html")) return res.status(403).send("Not authorized");
+      return res.status(403).json({ message: "Forbidden" });
     }
     next();
   };

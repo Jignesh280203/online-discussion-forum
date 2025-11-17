@@ -13,71 +13,84 @@ const rateLimit = require("express-rate-limit");
 dotenv.config();
 const app = express();
 
-// Trust proxy (Render)
+/* ============================
+        TRUST PROXY
+============================= */
 if (process.env.TRUST_PROXY === "true") {
   app.set("trust proxy", 1);
 }
 
-// Security + parsers
+/* ============================
+        SECURITY + PARSERS
+============================= */
 app.use(helmet());
 app.use(morgan(process.env.NODE_ENV === "production" ? "combined" : "dev"));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
-// Rate limit
+/* ============================
+        RATE LIMIT
+============================= */
 app.use(
   rateLimit({
-    windowMs: 60 * 1000,
+    windowMs: 60 * 1000, // 1 minute
     max: 100,
+    message: "Too many requests, please try again later.",
   })
 );
 
-// Static files
+/* ============================
+        STATIC FILES
+============================= */
 app.use(express.static(path.join(__dirname, "public")));
 
-// View engine
+/* ============================
+        VIEW ENGINE
+============================= */
 app.set("view engine", "ejs");
 app.set("views", path.join(__dirname, "views"));
 
-// Connect DB
+/* ============================
+        CONNECT DATABASE
+============================= */
 connectDB();
 
-// Auth middleware
+/* ============================
+        AUTH MIDDLEWARE
+============================= */
 const { protect, attachUser } = require("./middleware/authMiddleware");
 
 // Attach user if token exists
 app.use(attachUser);
 
-// Make user global for all EJS
+// Make user available to all EJS views
 app.use((req, res, next) => {
   res.locals.currentUser = req.user || null;
   next();
 });
 
 /* ============================
-       ROUTES REGISTRATION
-============================ */
-
+        ROUTES REGISTRATION
+============================= */
 const authRoutes = require("./routes/authRoutes");
 const categoryRoutes = require("./routes/categoryRoutes");
 const threadRoutes = require("./routes/threadRoutes");
 const commentRoutes = require("./routes/commentRoutes");
 const { dashboard } = require("./controllers/homeController");
 
-// Dashboard Route (🔥 IMPORTANT)
+// Dashboard Home Route
 app.get("/", dashboard);
 
-// Main Routes
+// Auth + Main Routes
 app.use("/", authRoutes);
 app.use("/categories", categoryRoutes);
 app.use("/threads", threadRoutes);
 app.use("/comments", commentRoutes);
 
 /* ============================
-       PROTECTED ROUTES
-============================ */
-
+        PROTECTED ROUTES
+============================= */
 app.get("/profile", protect, (req, res) => {
   res.render("profile", { title: "Your Profile" });
 });
@@ -94,9 +107,8 @@ app.get("/admin", protect, (req, res) => {
 });
 
 /* ============================
-           ERROR HANDLERS
-============================ */
-
+        ERROR HANDLERS
+============================= */
 app.use((req, res) => {
   res.status(404).render("404", { url: req.originalUrl });
 });
@@ -110,16 +122,15 @@ app.use((err, req, res, next) => {
 });
 
 /* ============================
-            START SERVER
-============================ */
-
+        START SERVER
+============================= */
 const PORT = process.env.PORT || 3000;
 
 const server = app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
 });
 
-// Port Error
+// Port error handler
 server.on("error", (err) => {
   if (err.code === "EADDRINUSE") {
     console.error(`❌ Port ${PORT} already in use.`);

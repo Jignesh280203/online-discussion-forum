@@ -1,83 +1,78 @@
 // controllers/commentController.js
 const Comment = require("../models/Comment");
-const Thread = require("../models/Thread");
 
-exports.addComment = async (req, res) => {
+exports.createComment = async (req, res) => {
   try {
     const { content } = req.body;
     const threadId = req.params.threadId;
+    if (!content) return res.status(400).send("Empty comment");
 
-    if (!content || !content.trim()) {
-      return res.redirect(`/threads/${threadId}`);
-    }
-
-    const comment = await Comment.create({
+    await Comment.create({
       thread: threadId,
       author: req.user._id,
-      content: content.trim(),
-      parent: null
+      content,
+      votes: 0,
+      replies: []
     });
 
-    // optional: update thread to include comment id in an array (if using), not required
-    res.redirect(`/threads/${threadId}#comment-${comment._id}`);
+    res.redirect(`/threads/${threadId}`);
   } catch (err) {
-    console.error("Add comment:", err);
-    res.status(500).render("error", { status: 500, error: "Failed to add comment" });
+    console.error("Create comment:", err);
+    res.status(500).send("Error adding comment");
   }
 };
 
-exports.replyComment = async (req, res) => {
+exports.replyToComment = async (req, res) => {
   try {
+    const cid = req.params.commentId;
     const { content } = req.body;
-    const commentId = req.params.commentId;
-    const parentComment = await Comment.findById(commentId);
-    if (!parentComment) return res.redirect("back");
+    if (!content) return res.status(400).send("Empty reply");
 
-    if (!content || !content.trim()) return res.redirect("back");
-
-    const reply = await Comment.create({
-      thread: parentComment.thread,
+    const reply = {
       author: req.user._id,
-      content: content.trim(),
-      parent: parentComment._id
-    });
+      content,
+      createdAt: new Date()
+    };
 
-    res.redirect(`/threads/${parentComment.thread}#comment-${reply._id}`);
+    await Comment.findByIdAndUpdate(cid, { $push: { replies: reply } });
+    // find the parent comment to get thread id to redirect
+    const parent = await Comment.findById(cid).lean();
+    res.redirect(parent ? `/threads/${parent.thread}` : "/threads");
   } catch (err) {
     console.error("Reply comment:", err);
-    res.status(500).render("error", { status: 500, error: "Failed to reply" });
-  }
-};
-
-exports.voteComment = async (req, res) => {
-  try {
-    const { type } = req.body;
-    const commentId = req.params.commentId;
-    const inc = type === "up" ? 1 : -1;
-    await Comment.findByIdAndUpdate(commentId, { $inc: { votes: inc }});
-    return res.redirect(req.get("referer") || "back");
-  } catch (err) {
-    console.error("Vote comment:", err);
-    res.status(500).render("error", { status: 500, error: "Failed to vote" });
+    res.status(500).send("Error replying");
   }
 };
 
 exports.deleteComment = async (req, res) => {
   try {
-    const commentId = req.params.commentId;
-    const c = await Comment.findById(commentId);
-    if (!c) return res.redirect("back");
+    const cid = req.params.commentId;
+    const comment = await Comment.findById(cid);
+    if (!comment) return res.status(404).send("Not found");
 
-    // only author or admin/moderator
-    if (c.author.toString() !== req.user._id.toString() && !["admin", "moderator"].includes(req.user.role)) {
-      return res.status(403).render("error", { status: 403, error: "Forbidden" });
+    // only author or admin/mod
+    if (comment.author.toString() !== req.user._id.toString() && !["admin","moderator"].includes(req.user.role)) {
+      return res.status(403).send("Not authorized");
     }
 
-    // Delete this comment and any replies (twitter-style replies are separate docs with parent = this id)
-    await Comment.deleteMany({ $or: [{ _id: commentId }, { parent: commentId }] });
-    res.redirect(req.get("referer") || "back");
+    await comment.deleteOne();
+    res.redirect("back");
   } catch (err) {
     console.error("Delete comment:", err);
-    res.status(500).render("error", { status: 500, error: "Failed to delete comment" });
+    res.status(500).send("Error deleting comment");
+  }
+};
+
+exports.voteComment = async (req, res) => {
+  try {
+    const cid = req.params.commentId;
+    const { type } = req.body;
+    const delta = type === "up" ? 1 : (type === "down" ? -1 : 0);
+    if (!delta) return res.redirect("back");
+    await Comment.findByIdAndUpdate(cid, { $inc: { votes: delta } });
+    res.redirect("back");
+  } catch (err) {
+    console.error("Vote comment:", err);
+    res.status(500).send("Error voting");
   }
 };

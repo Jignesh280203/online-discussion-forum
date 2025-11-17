@@ -1,24 +1,14 @@
+// routes/authRoutes.js
 const express = require("express");
 const router = express.Router();
-const authController = require("../controllers/authController");
+const { register, login, logout } = require("../controllers/authController");
 
-// LOGIN PAGE
-router.get("/login", (req, res) => {
-  res.render("login", { title: "Login" });
-});
+router.get("/register", (req, res) => res.render("register"));
+router.post("/register", register);
 
-// LOGIN SUBMIT
-router.post("/login", authController.login);
+router.get("/login", (req, res) => res.render("login"));
+router.post("/login", login);
 
-// REGISTER PAGE
-router.get("/register", (req, res) => {
-  res.render("register", { title: "Register" });
-});
-
-// REGISTER SUBMIT
-router.post("/register", authController.register);
-
-// LOGOUT
-router.get("/logout", authController.logout);
+router.get("/logout", logout);
 
 module.exports = router;
