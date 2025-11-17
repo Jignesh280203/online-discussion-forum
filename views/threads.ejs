@@ -1,20 +1,23 @@
-<%- include('layout', { body: `
+<%- include("layout", {
+  body: `
+
 <div class="max-w-5xl mx-auto">
 
   <!-- Header -->
   <div class="flex items-center justify-between mb-6" data-aos="fade-up">
     <h1 class="text-3xl font-bold text-slate-800">All Threads</h1>
 
-    <% if (currentUser) { %>
-      <!-- Inline new thread form toggle -->
-      <button id="openThreadBtn" class="px-4 py-2 bg-accent-1 text-white rounded shadow">+ New Thread</button>
-    <% } else { %>
-      <a href="/login" class="px-4 py-2 bg-white text-slate-900 rounded shadow">Login to create</a>
-    <% } %>
+    ${
+      currentUser
+        ? `<button id="openThreadBtn" class="px-4 py-2 bg-accent-1 text-white rounded shadow">+ New Thread</button>`
+        : `<a href="/login" class="px-4 py-2 bg-white text-slate-900 rounded shadow">Login to create</a>`
+    }
   </div>
 
-  <!-- New thread form (hidden by default) -->
-  <% if (currentUser) { %>
+  <!-- New Thread Form -->
+  ${
+    currentUser
+      ? `
     <div id="newThreadBox" class="mb-6 bg-white p-6 rounded-xl shadow hidden" data-aos="fade-up">
       <form action="/threads" method="POST" class="space-y-3">
         <input name="title" required placeholder="Thread title" class="w-full p-3 border rounded" />
@@ -25,26 +28,32 @@
         </div>
       </form>
     </div>
-  <% } %>
+      `
+      : ""
+  }
 
-  <!-- Thread List -->
-  <% if (threads && threads.length > 0) { %>
+  <!-- Threads List -->
+  ${
+    threads && threads.length > 0
+      ? `
     <div class="space-y-5">
-      <% threads.forEach(t => { %>
+      ${threads
+        .map(
+          (t) => `
       <div class="flex p-4 bg-white rounded-xl shadow hover:shadow-md transition" data-aos="fade-up">
 
-        <!-- Votes Section -->
+        <!-- Votes -->
         <div class="flex flex-col items-center mr-5">
-          <form action="/threads/<%= t._id %>/vote" method="POST">
+          <form action="/threads/${t._id}/vote" method="POST">
             <input type="hidden" name="type" value="up">
             <button type="submit" class="text-slate-500 hover:text-accent-1">
               <i data-feather="arrow-up-circle"></i>
             </button>
           </form>
 
-          <div class="text-xl font-bold text-slate-700 my-1"><%= t.votes || 0 %></div>
+          <div class="text-xl font-bold text-slate-700 my-1">${t.votes || 0}</div>
 
-          <form action="/threads/<%= t._id %>/vote" method="POST">
+          <form action="/threads/${t._id}/vote" method="POST">
             <input type="hidden" name="type" value="down">
             <button type="submit" class="text-slate-500 hover:text-accent-1">
               <i data-feather="arrow-down-circle"></i>
@@ -52,38 +61,44 @@
           </form>
         </div>
 
-        <!-- Thread Content -->
+        <!-- Content -->
         <div class="flex-1">
-          <a href="/threads/<%= t._id %>" class="text-xl font-semibold text-slate-900 hover:text-accent-1">
-            <%= t.title %>
+          <a href="/threads/${t._id}" class="text-xl font-semibold text-slate-900 hover:text-accent-1">
+            ${t.title}
           </a>
 
           <p class="text-slate-600 mt-1">
-            <%= t.content.length > 180 ? t.content.slice(0, 180) + "..." : t.content %>
+            ${
+              t.content.length > 180
+                ? t.content.slice(0, 180) + "…"
+                : t.content
+            }
           </p>
 
           <div class="flex items-center gap-4 mt-3 text-sm text-slate-500">
-            <span>👤 <%= t.author?.username || "Anonymous" %></span>
-            <span>🕒 <%= new Date(t.createdAt).toLocaleString() %></span>
-            <span>💬 <%= t.commentsCount || 0 %> Comments</span>
+            <span>👤 ${t.author?.username || "Anonymous"}</span>
+            <span>🕒 ${new Date(t.createdAt).toLocaleString()}</span>
+            <span>💬 ${t.commentsCount || 0} Comments</span>
           </div>
         </div>
 
       </div>
-      <% }) %>
+      `
+        )
+        .join("")}
     </div>
-  <% } else { %>
-    <p class="text-center text-slate-600 text-lg">No threads yet. Be the first to create one!</p>
-  <% } %>
+      `
+      : `<p class="text-center text-slate-600 text-lg">No threads yet. Be the first to create one!</p>`
+  }
 
 </div>
 
 <script>
-  // thread form toggle
   document.addEventListener('DOMContentLoaded', () => {
     const openBtn = document.getElementById('openThreadBtn');
     const box = document.getElementById('newThreadBox');
     const cancel = document.getElementById('cancelThread');
+
     if (openBtn && box) {
       openBtn.addEventListener('click', () => box.classList.toggle('hidden'));
     }
@@ -92,4 +107,5 @@
     }
   });
 </script>
+
 ` }) %>

@@ -1,90 +1,63 @@
-<%- include('layout', { body: `
+<%- include('layout', { title: 'Home', body: `
 <div class="max-w-6xl mx-auto">
 
-  <!-- Welcome Section -->
-  <div class="mb-8" data-aos="fade-up">
-    <h1 class="text-4xl font-bold text-slate-900">
-      Hey <%= currentUser ? currentUser.username : "Guest" %> 👋
-    </h1>
-    <p class="text-slate-600 mt-1">
-      Welcome to ColorForum — your place to discuss, learn, and explore ideas!
-    </p>
+  <!-- Welcome -->
+  <div class="mb-8">
+    <h1 class="text-3xl font-bold">${currentUser ? currentUser.username : "Guest"}, welcome 👋</h1>
+    <p class="muted mt-1">Discover trending threads, recent posts and your activity.</p>
   </div>
 
-  <!-- Quick Stats -->
+  <!-- Stats -->
   <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-
-    <div class="bg-white p-6 rounded-xl shadow hover:shadow-lg transition" data-aos="fade-up">
-      <h3 class="text-sm text-slate-500">Total Categories</h3>
-      <p class="text-4xl font-extrabold text-accent-1 mt-2"><%= stats?.categories || 0 %></p>
-      <a href="/categories" class="text-sm text-accent-3 mt-2 inline-block">View Categories →</a>
+    <div class="card p-6 rounded shadow">
+      <h4 class="text-sm muted">Total Categories</h4>
+      <div class="text-3xl font-bold mt-2">${(stats && stats.categories) ? stats.categories : 0}</div>
+      <a href="/categories" class="text-sm mt-2 inline-block text-accent-2">View Categories →</a>
     </div>
 
-    <div class="bg-white p-6 rounded-xl shadow hover:shadow-lg transition" data-aos="fade-up" data-aos-delay="100">
-      <h3 class="text-sm text-slate-500">Total Threads</h3>
-      <p class="text-4xl font-extrabold text-accent-1 mt-2"><%= stats?.threads || 0 %></p>
-      <a href="/threads" class="text-sm text-accent-3 mt-2 inline-block">View Threads →</a>
+    <div class="card p-6 rounded shadow">
+      <h4 class="text-sm muted">Total Threads</h4>
+      <div class="text-3xl font-bold mt-2">${(stats && stats.threads) ? stats.threads : 0}</div>
+      <a href="/threads" class="text-sm mt-2 inline-block text-accent-2">View Threads →</a>
     </div>
 
-    <div class="bg-white p-6 rounded-xl shadow hover:shadow-lg transition" data-aos="fade-up" data-aos-delay="200">
-      <h3 class="text-sm text-slate-500">Your Activity</h3>
-      <p class="text-2xl font-bold text-accent-3 mt-2"><%= stats?.yourThreads || 0 %> threads</p>
-      <p class="text-slate-500 text-sm"><%= stats?.yourComments || 0 %> comments</p>
-      <a href="/profile" class="text-sm text-accent-1 mt-2 inline-block">View Profile →</a>
+    <div class="card p-6 rounded shadow">
+      <h4 class="text-sm muted">Your Activity</h4>
+      <div class="text-2xl font-bold mt-2">${(stats && stats.yourThreads) ? stats.yourThreads : 0} threads</div>
+      <div class="muted text-sm">${(stats && stats.yourComments) ? stats.yourComments : 0} comments</div>
+      <a href="/profile" class="text-sm mt-2 inline-block text-accent-2">View Profile →</a>
     </div>
-
   </div>
 
-  <!-- Trending + Recent -->
+  <!-- Trending & Recent -->
   <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-
-    <!-- Trending Threads -->
-    <section class="bg-white p-6 rounded-xl shadow" data-aos="fade-up">
-      <h2 class="text-xl font-semibold mb-3">🔥 Trending Threads</h2>
-
-      <% if (trending && trending.length > 0) { %>
-        <ul class="space-y-3">
-          <% trending.forEach(t => { %>
-            <li class="p-3 border rounded shadow-sm hover:shadow transition">
-              <a href="/threads/<%= t._id %>" class="text-lg font-semibold text-accent-1 hover:underline">
-                <%= t.title %>
-              </a>
-              <div class="text-xs text-slate-500 mt-1">
-                ⭐ Votes: <%= t.votes || 0 %> • 
-                <%= new Date(t.createdAt).toLocaleString() %>
-              </div>
-            </li>
-          <% }) %>
-        </ul>
-      <% } else { %>
-        <p class="text-slate-500">No trending threads yet.</p>
-      <% } %>
+    <section class="card p-6 rounded shadow">
+      <h3 class="font-semibold mb-3">🔥 Trending Threads</h3>
+      ${
+        (trending && trending.length > 0)
+          ? trending.map(t => `
+            <div class="p-3 border-b border-white/5">
+              <a href="/threads/${t._id}" class="font-semibold text-accent-1">${t.title}</a>
+              <div class="muted text-xs mt-1">Votes: ${t.votes || 0} • ${new Date(t.createdAt).toLocaleString()}</div>
+            </div>
+          `).join('')
+          : `<p class="muted">No trending threads yet.</p>`
+      }
     </section>
 
-    <!-- Recent Threads -->
-    <section class="bg-white p-6 rounded-xl shadow" data-aos="fade-up">
-      <h2 class="text-xl font-semibold mb-3">🆕 Recent Threads</h2>
-
-      <% if (recent && recent.length > 0) { %>
-        <ul class="space-y-3">
-          <% recent.forEach(t => { %>
-            <li class="p-3 border rounded shadow-sm hover:shadow transition">
-              <a href="/threads/<%= t._id %>" class="font-semibold hover:underline text-accent-3">
-                <%= t.title %>
-              </a>
-              <div class="text-xs text-slate-500 mt-1">
-                by <%= t.author?.username || 'Anonymous' %> • 
-                <%= new Date(t.createdAt).toLocaleString() %>
-              </div>
-            </li>
-          <% }) %>
-        </ul>
-      <% } else { %>
-        <p class="text-slate-500">No recent threads yet.</p>
-      <% } %>
-
+    <section class="card p-6 rounded shadow">
+      <h3 class="font-semibold mb-3">🆕 Recent Threads</h3>
+      ${
+        (recent && recent.length > 0)
+          ? recent.map(t => `
+            <div class="p-3 border-b border-white/5">
+              <a href="/threads/${t._id}" class="font-semibold text-accent-2">${t.title}</a>
+              <div class="muted text-xs mt-1">by ${t.author?.username || 'Anonymous'} • ${new Date(t.createdAt).toLocaleString()}</div>
+            </div>
+          `).join('')
+          : `<p class="muted">No recent threads yet.</p>`
+      }
     </section>
-
   </div>
 
 </div>
